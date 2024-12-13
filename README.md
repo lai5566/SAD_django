@@ -43,7 +43,7 @@ cd sad_django
 
 2. 激活環境：
    ```bash
-   conda activate sad_django
+   conda activate djangoProject
    ```
 
 3. 確認環境中安裝的依賴：
