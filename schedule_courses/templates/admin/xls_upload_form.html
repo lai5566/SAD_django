@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <h2>上傳 XLS 檔案</h2>
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="button">上傳</button>
+    <a href="../" class="button">取消</a>
+  </form>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome</title>
+    <style>
+        body, html {
+            height: 100%; 
+            margin: 0;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center; 
+        }
+    </style>
+</head>
+<body>
+    <a href="{% url 'admin:index' %}">
+        <img src="{% static 'isfine.png' %}" alt="isfine">
+    </a>
+{##}
+{#    <a href="{% url 'admin:index' %}">#}
+{#        <img src="{% static 'ZymghRSE_400x400.jpg' %}" alt="cat">#}
+{#    </a> #}
+
+</body>
+</html>
