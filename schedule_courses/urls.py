@@ -24,7 +24,8 @@
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CourseViewSet, StudentCourseViewSet, login_view, get_csrf_token, PasswordResetRequestView, check_auth_status, register_user
+from .views import CourseViewSet, StudentCourseViewSet, login_view, get_csrf_token, PasswordResetRequestView, \
+    check_auth_status, register_user,PasswordResetConfirmView
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
@@ -36,6 +37,7 @@ urlpatterns = [
     path('api/signup/', register_user, name='register_user'),
     path('api/auth/login/', login_view, name='login'),
     path('csrf/', get_csrf_token, name='get_csrf_token'),
-    path('api/password_reset/', PasswordResetRequestView.as_view(), name='password_reset'),
     path('api/auth/status/', check_auth_status, name='check_auth_status'),
+    path('api/password_reset/', PasswordResetRequestView.as_view(), name='password_reset'),
+    path('api/password_reset_confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 ]

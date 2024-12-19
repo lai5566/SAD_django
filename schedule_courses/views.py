@@ -66,79 +66,49 @@ def get_csrf_token(request):
     csrf_token = get_token(request)  # 生成或获取当前请求的 CSRF Token
     return JsonResponse({'csrfToken': csrf_token})
 
+# def login_view(request):
+#     if request.method == 'POST':
+#         try:
+#
+#             data = json.loads(request.body)  # 從請求體中解析 JSON 數據
+#
+#         except json.JSONDecodeError:
+#             return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
+#         print(data)
+#         # 使用 LoginSerializer 進行資料驗證
+#         serializer = LoginSerializer(data=data, context={'request': request})
+#         if serializer.is_valid():
+#             user = serializer.validated_data['user']
+#             login(request, user)
+#             return JsonResponse({'success': True, 'message': 'Logged in'})
+#         else:
+#             # 返回驗證錯誤訊息
+#             return JsonResponse({'success': False, 'message': serializer.errors}, status=401)
+#
+#     return JsonResponse({'error': 'Invalid method'}, status=400)
 def login_view(request):
     if request.method == 'POST':
         try:
-
-            data = json.loads(request.body)  # 從請求體中解析 JSON 數據
-
+            data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
-        print(data)
-        # 使用 LoginSerializer 進行資料驗證
+
         serializer = LoginSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             user = serializer.validated_data['user']
             login(request, user)
-            return JsonResponse({'success': True, 'message': 'Logged in'})
+
+            user_data = serializer.to_representation(serializer.validated_data)
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Logged in successfully.',
+                'user': user_data,
+            })
         else:
-            # 返回驗證錯誤訊息
             return JsonResponse({'success': False, 'message': serializer.errors}, status=401)
 
     return JsonResponse({'error': 'Invalid method'}, status=400)
-
-class PasswordResetRequestView(generics.GenericAPIView):
-    """
-    密碼重設請求 API 端點
-    """
-    serializer_class = PasswordResetRequestSerializer
-    permission_classes = [AllowAny]
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
-        user = CustomUser.objects.get(email=email)
-
-        # 生成重設密碼的 token
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-
-        # 構建重設密碼的連結
-        reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
-
-        # 渲染郵件模板
-        message = render_to_string('password_reset_email.html', {
-            'user': user,
-            'reset_url': reset_url,
-        })
-
-        # 發送郵件
-        email_message = EmailMessage(
-            subject='重設您的密碼',
-            body=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[email],
-        )
-        email_message.send(fail_silently=False)
-
-        return Response({'message': '重設密碼的郵件已發送。'}, status=status.HTTP_200_OK)
-
-class PasswordResetConfirmView(generics.GenericAPIView):
-    """
-    密碼重設確認 API 端點
-    """
-    serializer_class = PasswordResetConfirmSerializer
-    permission_classes = [AllowAny]
-
-    def post(self, request, uid, token, *args, **kwargs):
-        data = request.data.copy()
-        data['uid'] = uid
-        data['token'] = token
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({'message': '密碼已成功重設。'}, status=status.HTTP_200_OK)
 
 
 from .models import StudentCourse
@@ -155,3 +125,121 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(student=self.request.user)
 
+# 密碼重設
+# views.py
+
+# your_app_name/views.py
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from django.core.mail import send_mail
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .serializers import PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+User = get_user_model()
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]  # 確保允許任何人訪問
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # 為了安全性，不顯示用戶是否存在
+                return Response(
+                    {'message': '密碼重設郵件已發送。'},
+                    status=status.HTTP_200_OK
+                )
+
+            # 生成重設令牌和 uid
+            token_generator = PasswordResetTokenGenerator()
+            token = token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            # 構建重設連結
+            reset_link = f"{settings.FRONTEND_URL}/reset-password/?uid={uid}&token={token}"
+
+            # 發送郵件
+            subject = '密碼重設請求'
+            message = f'''
+您收到這封郵件是因為我們收到您帳戶的密碼重設請求。
+
+請點擊以下連結來重設您的密碼：
+{reset_link}
+
+如果您沒有發起此請求，請忽略此郵件。
+
+謝謝！
+            '''
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+                return Response(
+                    {'message': '密碼重設郵件已發送。'},
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                logger.error(f'Error sending password reset email: {e}')
+                return Response(
+                    {'error': '無法發送郵件，請稍後再試。'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        else:
+            logger.error(f'Password reset request invalid: {serializer.errors}')
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]  # 確保允許任何人訪問
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            new_password = serializer.validated_data['new_password']
+            user.set_password(new_password)
+            user.save()
+            return Response(
+                {'message': '密碼已成功重設。'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            logger.error(f'Password reset confirm invalid: {serializer.errors}')
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PasswordResetConfirmView(APIView):
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            new_password = serializer.validated_data['new_password']
+            user.set_password(new_password)
+            user.save()
+            return Response(
+                {'message': '密碼已成功重設。'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            logger.error(f'Password reset confirm invalid: {serializer.errors}')
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -97,6 +97,7 @@ WSGI_APPLICATION = 'djangoProject_vite_api.wsgi.application'
 
 
 AUTHENTICATION_BACKENDS = [
+    'schedule_courses.backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 AUTH_USER_MODEL = 'schedule_courses.CustomUser'
@@ -174,11 +175,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # 找回密碼有限
-
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # 或您使用的郵件服務提供者
-EMAIL_PORT = 587
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'lai27418@gmail.com'  # 替換為您的郵件地址
-EMAIL_HOST_PASSWORD = 'dhaadbezmiyalbu'  # 替換為您的郵件密碼
-# DEFAULT_FROM_EMAIL = 'Your Project <your_email@example.com>'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'lai27418@gmail.com'  # 您的 Gmail 地址
+EMAIL_HOST_PASSWORD = 'ixna pzhr hose jnro>'  # 您生成的應用程式密碼
+DEFAULT_FROM_EMAIL = f'您的網站名稱 <{EMAIL_HOST_USER}>'
+
+FRONTEND_URL = 'http://127.0.0.1:5173'  # 設定為本地端的前端 URL
