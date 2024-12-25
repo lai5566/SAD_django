@@ -26,6 +26,10 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import CourseViewSet, StudentCourseViewSet, login_view, get_csrf_token, PasswordResetRequestView, \
     check_auth_status, register_user,PasswordResetConfirmView
+# urls.py
+from .views import ChangePasswordView,logout_view
+
+
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
@@ -35,9 +39,11 @@ app_name = "schedule_courses"
 urlpatterns = [
     path('api/', include(router.urls)),
     path('api/signup/', register_user, name='register_user'),
+    path('api/logout/', logout_view, name='logout'),
     path('api/auth/login/', login_view, name='login'),
     path('csrf/', get_csrf_token, name='get_csrf_token'),
     path('api/auth/status/', check_auth_status, name='check_auth_status'),
     path('api/password_reset/', PasswordResetRequestView.as_view(), name='password_reset'),
     path('api/password_reset_confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('api/change_password/', ChangePasswordView.as_view(), name='change_password'),
 ]

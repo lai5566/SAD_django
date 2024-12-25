@@ -243,3 +243,43 @@ class PasswordResetConfirmView(APIView):
         else:
             logger.error(f'Password reset confirm invalid: {serializer.errors}')
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+#改密碼
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from django.contrib.auth.hashers import check_password
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not current_password or not new_password:
+            return Response({'detail': '缺少必要參數'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 驗證目前密碼是否正確
+        if not check_password(current_password, user.password):
+            return Response({'detail': '當前密碼不正確'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 更新密碼
+        user.set_password(new_password)
+        user.save()
+        return Response({'detail': '密碼更新成功'}, status=status.HTTP_200_OK)
+
+
+
+#登出
+# views.py
+from django.contrib.auth import logout
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+@api_view(["POST"])
+def logout_view(request):
+    logout(request)  # 會自動清除 request.session
+    return Response({"detail": "已登出"}, status=200)
