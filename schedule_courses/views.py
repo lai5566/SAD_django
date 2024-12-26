@@ -66,26 +66,13 @@ def get_csrf_token(request):
     csrf_token = get_token(request)  # 生成或获取当前请求的 CSRF Token
     return JsonResponse({'csrfToken': csrf_token})
 
-# def login_view(request):
-#     if request.method == 'POST':
-#         try:
-#
-#             data = json.loads(request.body)  # 從請求體中解析 JSON 數據
-#
-#         except json.JSONDecodeError:
-#             return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
-#         print(data)
-#         # 使用 LoginSerializer 進行資料驗證
-#         serializer = LoginSerializer(data=data, context={'request': request})
-#         if serializer.is_valid():
-#             user = serializer.validated_data['user']
-#             login(request, user)
-#             return JsonResponse({'success': True, 'message': 'Logged in'})
-#         else:
-#             # 返回驗證錯誤訊息
-#             return JsonResponse({'success': False, 'message': serializer.errors}, status=401)
-#
-#     return JsonResponse({'error': 'Invalid method'}, status=400)
+
+import json
+from django.contrib.auth import login
+from django.http import JsonResponse
+from rest_framework import status
+from .serializers import LoginSerializer
+
 def login_view(request):
     if request.method == 'POST':
         try:
@@ -93,20 +80,27 @@ def login_view(request):
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
 
+        # 使用自訂好的 LoginSerializer 進行驗證
         serializer = LoginSerializer(data=data, context={'request': request})
         if serializer.is_valid():
+            # 取得序列化後的資料
+            user_data = serializer.data
+            # 在 validate 時已經帶進 validated_data['user']
             user = serializer.validated_data['user']
-            login(request, user)
 
-            user_data = serializer.to_representation(serializer.validated_data)
+            # 使用 Django login() 進行登入，建立 session
+            login(request, user)
 
             return JsonResponse({
                 'success': True,
                 'message': 'Logged in successfully.',
-                'user': user_data,
-            })
+                'user': user_data,  # 直接回傳 LoginSerializer 裡面宣告的欄位
+            }, status=status.HTTP_200_OK)
         else:
-            return JsonResponse({'success': False, 'message': serializer.errors}, status=401)
+            return JsonResponse({
+                'success': False,
+                'message': serializer.errors
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
     return JsonResponse({'error': 'Invalid method'}, status=400)
 

@@ -48,57 +48,55 @@ class CustomUserSerializer(serializers.ModelSerializer):
         user.save(using=self._db)
         return user
 
-# class LoginSerializer(serializers.Serializer):
-#     """
-#     用於用戶登入的序列化器，處理電子郵件和密碼的驗證。
-#     """
-#     email = serializers.EmailField()
-#     password = serializers.CharField(write_only=True)
-#
-#     def validate(self, data):
-#         """
-#         驗證用戶的電子郵件和密碼是否正確。
-#         """
-#         email = data.get('email')
-#         password = data.get('password')
-#         user = authenticate(request=self.context.get('request'), email=email, password=password)
-#         if not user:
-#             raise serializers.ValidationError('Unable to log in with provided credentials.')
-#         data['user'] = user
-#         return data
+
+from rest_framework import serializers
+from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
 class LoginSerializer(serializers.Serializer):
-    """
-    用於用戶登入的序列化器，處理電子郵件和密碼的驗證。
-    """
+    # 原本就需要的欄位
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
+    # 新增想要回傳的欄位，並標記為只讀（read_only=True）
+    id = serializers.IntegerField(read_only=True)
+    is_admin = serializers.BooleanField(read_only=True)
+    is_superuser = serializers.BooleanField(read_only=True)
+
     def validate(self, data):
-        """
-        驗證用戶的電子郵件和密碼是否正確。
-        """
+        # 取得前端傳入的 email、password
         email = data.get('email')
         password = data.get('password')
-        user = authenticate(request=self.context.get('request'), email=email, password=password)
+
+        # 用 authenticate 驗證帳密
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email,  # 注意: 若你的自定義 User Model 用的是 email 做 username field，要這樣寫
+            password=password
+        )
         if not user:
-            raise serializers.ValidationError('Unable to log in with provided credentials.')
+            raise serializers.ValidationError('無法使用提供的憑證登入。')
+
+        #驗證成功：把想要回傳的欄位資訊，塞到 validated_data
+        # === 這裡加上 print 來確認流程有走到 ===
+        print("i here")
+        print(f"user.id: {user.id}")
+        print(f"user.is_admin: {user.is_admin}")
+        print(f"user.is_superuser: {user.is_superuser}")
+
+        data['id'] = user.id
+        data['is_admin'] = user.is_admin
+        data['is_superuser'] = user.is_superuser
+        # 也可視需求加入更多自訂資訊
+
+        # 保持對應 user instance 的參考，後續可能有需要
         data['user'] = user
+        print('sdef')
+        print(data)
         return data
-
-    def to_representation(self, instance):
-        user = instance['user']
-        return {
-            'email': user.email,
-            'is_admin': user.is_admin,
-            'is_superuser': user.is_superuser,
-            'id': user.id,
-            # 添加其他需要返回的用戶資訊
-        }
-
-
-
-
-
 # 選課
 from .models import StudentCourse
 #
@@ -119,23 +117,23 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-
-    def validate(self, data):
-        email = data.get('email')
-        password = data.get('password')
-
-        if email and password:
-            user = authenticate(request=self.context.get('request'), username=email, password=password)
-            if not user:
-                raise serializers.ValidationError('無法使用提供的憑證登入。')
-        else:
-            raise serializers.ValidationError('必須包含 "email" 和 "password"。')
-
-        data['user'] = user
-        return data
+# class LoginSerializer(serializers.Serializer):
+#     email = serializers.EmailField()
+#     password = serializers.CharField(write_only=True)
+#
+#     def validate(self, data):
+#         email = data.get('email')
+#         password = data.get('password')
+#
+#         if email and password:
+#             user = authenticate(request=self.context.get('request'), username=email, password=password)
+#             if not user:
+#                 raise serializers.ValidationError('無法使用提供的憑證登入。')
+#         else:
+#             raise serializers.ValidationError('必須包含 "email" 和 "password"。')
+#
+#         data['user'] = user
+#         return data
 
 # your_app_name/serializers.py
 
