@@ -31,8 +31,8 @@
 ### 克隆專案
 使用以下命令將專案克隆到本地：
 ```bash
-git clone https://github.com/lai5566/sad_django.git
-cd sad_django
+git clone https://github.com/lai5566/SAD_django.git
+cd SAD_django
 ```
 
 ### 創建 Conda 環境
